@@ -1,12 +1,12 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Chats from "./pages/Chats";
-import Login from "./pages/Login";
+import HomePage from "./pages/Home";
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Login />} exact></Route>
+        <Route path="/" element={<HomePage />} exact></Route>
         <Route path="/chats" element={<Chats />} exact></Route>
       </Routes>
     </Router>
