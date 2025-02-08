@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Login = ({ handleSignUpOrLoginChange }) => {
   const [passwordVisibility, setPasswordVisibility] = useState("password");
@@ -6,20 +9,55 @@ const Login = ({ handleSignUpOrLoginChange }) => {
     useState("Show");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const handlePasswordVisibilityChange = (e) => {
     e.preventDefault();
-    if (passwordVisibility === "password") {
-      setPasswordVisibility("text");
-      setPasswordVisibilityButtonText("Hide");
-    } else {
-      setPasswordVisibility("password");
-      setPasswordVisibilityButtonText("Show");
-    }
+    setPasswordVisibility((prev) =>
+      prev === "password" ? "text" : "password"
+    );
+    setPasswordVisibilityButtonText((prev) =>
+      prev === "Show" ? "Hide" : "Show"
+    );
   };
 
-  const handleFormSubmission = () => {};
+  const handleFormSubmission = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    if (!email || !password) {
+      toast.error("Please enter both email and password", { theme: "dark" });
+      setLoading(false);
+      return;
+    }
+    try {
+      const response = await fetch("http://localhost:5000/api/user/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem("userInfo", JSON.stringify(data));
+        toast.success("Login Successful! 🎉", { theme: "dark" });
+
+        setTimeout(() => {
+          navigate("/chats");
+        }, 2000);
+      } else {
+        toast.error(data.message || "Login failed. Please try again!", {
+          theme: "dark",
+        });
+      }
+    } catch (error) {
+      console.error("Login Error:", error);
+      toast.error("Something went wrong! Please try again.", { theme: "dark" });
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <form
       className="bg-nearBlack w-80 sm:w-96 flex flex-col justify-center items-center rounded-lg p-6 sm:p-10 shadow-lg shadow-deepMagenta"
@@ -33,6 +71,7 @@ const Login = ({ handleSignUpOrLoginChange }) => {
         type="email"
         name="email"
         id="email"
+        value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Email"
         className="w-full border-2 border-darkViolet focus:border-brightMagenta bg-transparent text-white p-2 rounded-lg outline-none mb-5"
@@ -45,6 +84,7 @@ const Login = ({ handleSignUpOrLoginChange }) => {
           type={passwordVisibility}
           name="password"
           id="password"
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
           className="border-2 border-darkViolet p-2 rounded-lg bg-transparent text-white focus:border-brightMagenta flex-grow outline-none"
@@ -61,7 +101,7 @@ const Login = ({ handleSignUpOrLoginChange }) => {
         type="submit"
         className="text-white p-2 rounded-lg mt-4 bg-brightMagenta w-full hover:bg-deepMagenta transition duration-300"
       >
-        Login
+        {loading ? "Logging in..." : "Login"}
       </button>
       <button
         type="button"
@@ -70,6 +110,7 @@ const Login = ({ handleSignUpOrLoginChange }) => {
       >
         Create Account
       </button>
+      <ToastContainer position="top-right" autoClose={3000} theme="dark" />
     </form>
   );
 };
