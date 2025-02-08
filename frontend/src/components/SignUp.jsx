@@ -11,13 +11,12 @@ const SignUp = ({ handleSignUpOrLoginChange }) => {
 
   const handlePasswordVisibilityChange = (e) => {
     e.preventDefault();
-    if (passwordVisibility === "password") {
-      setPasswordVisibility("text");
-      setPasswordVisibilityButtonText("Hide");
-    } else {
-      setPasswordVisibility("password");
-      setPasswordVisibilityButtonText("Show");
-    }
+    setPasswordVisibility((prev) =>
+      prev === "password" ? "text" : "password"
+    );
+    setPasswordVisibilityButtonText((prev) =>
+      prev === "Show" ? "Hide" : "Show"
+    );
   };
 
   const postDetails = (pics) => {
@@ -30,11 +29,11 @@ const SignUp = ({ handleSignUpOrLoginChange }) => {
 
   return (
     <form
-      className="bg-darkPurple w-80 sm:w-96 flex flex-col justify-center items-center rounded-lg p-6 sm:p-10 shadow-lg shadow-neonPink"
+      className="bg-nearBlack w-80 sm:w-96 flex flex-col justify-center items-center rounded-lg p-6 sm:p-10 shadow-lg shadow-deepMagenta"
       onSubmit={handleFormSubmission}
     >
-      <h1 className="text-neonPink text-xl font-semibold">Sign Up</h1>
-      <label htmlFor="name" className="w-full mb-3 text-magenta">
+      <h1 className="text-brightMagenta text-xl font-semibold">Sign Up</h1>
+      <label htmlFor="name" className="w-full mb-3 text-deepMagenta">
         Name
       </label>
       <input
@@ -43,9 +42,9 @@ const SignUp = ({ handleSignUpOrLoginChange }) => {
         id="name"
         onChange={(e) => setName(e.target.value)}
         placeholder="Enter Your Name"
-        className="w-full border-2 border-violetBlue focus:border-neonPink bg-transparent text-white p-2 rounded-lg outline-none mb-5"
+        className="w-full border-2 border-darkViolet focus:border-brightMagenta bg-transparent text-white p-2 rounded-lg outline-none mb-5"
       />
-      <label htmlFor="email" className="w-full mb-3 text-magenta">
+      <label htmlFor="email" className="w-full mb-3 text-deepMagenta">
         Email Address
       </label>
       <input
@@ -54,9 +53,9 @@ const SignUp = ({ handleSignUpOrLoginChange }) => {
         id="email"
         placeholder="Email"
         onChange={(e) => setEmail(e.target.value)}
-        className="w-full border-2 border-violetBlue focus:border-neonPink bg-transparent text-white p-2 rounded-lg outline-none mb-5"
+        className="w-full border-2 border-darkViolet focus:border-brightMagenta bg-transparent text-white p-2 rounded-lg outline-none mb-5"
       />
-      <label htmlFor="password" className="w-full mb-3 text-magenta">
+      <label htmlFor="password" className="w-full mb-3 text-deepMagenta">
         Password
       </label>
       <div className="w-full flex items-center gap-1">
@@ -66,17 +65,17 @@ const SignUp = ({ handleSignUpOrLoginChange }) => {
           id="password"
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
-          className="border-2 border-violetBlue p-2 rounded-lg bg-transparent text-white focus:border-neonPink flex-grow outline-none"
+          className="border-2 border-darkViolet p-2 rounded-lg bg-transparent text-white focus:border-brightMagenta flex-grow outline-none"
         />
         <button
           type="button"
-          className="bg-neonPink text-white p-2 rounded-md"
+          className="bg-brightMagenta text-white p-2 rounded-md"
           onClick={handlePasswordVisibilityChange}
         >
           {passwordVisibilityButtonText}
         </button>
       </div>
-      <label htmlFor="picture" className="w-full mb-3 text-magenta">
+      <label htmlFor="picture" className="w-full mb-3 text-deepMagenta">
         Upload Your Picture
       </label>
       <input
@@ -85,18 +84,18 @@ const SignUp = ({ handleSignUpOrLoginChange }) => {
         id="picture"
         accept="image/*"
         onChange={(e) => postDetails(e.target.files[0])}
-        className="w-full border-2 border-violetBlue focus:border-neonPink bg-transparent text-white p-2 rounded-lg outline-none mb-5"
+        className="w-full border-2 border-darkViolet focus:border-brightMagenta bg-transparent text-white p-2 rounded-lg outline-none mb-5"
       />
       <button
         type="submit"
-        className="text-white p-2 rounded-lg mt-4 bg-neonPink w-full hover:bg-magenta transition duration-300"
+        className="text-white p-2 rounded-lg mt-4 bg-brightMagenta w-full hover:bg-deepMagenta transition duration-300"
       >
         Sign Up
       </button>
       <button
         type="button"
         onClick={handleSignUpOrLoginChange}
-        className="text-neonPink mt-4 w-full text-center hover:text-magenta transition duration-300"
+        className="text-brightMagenta mt-4 w-full text-center hover:text-deepMagenta transition duration-300"
       >
         Already have an account? Login
       </button>

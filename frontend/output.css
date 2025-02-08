@@ -730,6 +730,11 @@ video {
   border-color: rgb(223 0 255 / var(--tw-border-opacity, 1));
 }
 
+.border-darkViolet {
+  --tw-border-opacity: 1;
+  border-color: rgb(80 0 120 / var(--tw-border-opacity, 1));
+}
+
 .bg-transparent {
   background-color: transparent;
 }
@@ -747,6 +752,11 @@ video {
 .bg-darkViolet {
   --tw-bg-opacity: 1;
   background-color: rgb(80 0 120 / var(--tw-bg-opacity, 1));
+}
+
+.bg-brightMagenta {
+  --tw-bg-opacity: 1;
+  background-color: rgb(223 0 255 / var(--tw-bg-opacity, 1));
 }
 
 .bg-gradient-to-r {
@@ -900,6 +910,16 @@ video {
   --tw-shadow: var(--tw-shadow-colored);
 }
 
+.shadow-deepMagenta {
+  --tw-shadow-color: rgb(180,0,200);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
+.shadow-brightMagenta {
+  --tw-shadow-color: rgb(223,0,255);
+  --tw-shadow: var(--tw-shadow-colored);
+}
+
 .outline-none {
   outline: 2px solid transparent;
   outline-offset: 2px;
@@ -917,9 +937,24 @@ video {
   transition-duration: 300ms;
 }
 
+.hover\:bg-deepMagenta:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(180 0 200 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:text-deepMagenta:hover {
+  --tw-text-opacity: 1;
+  color: rgb(180 0 200 / var(--tw-text-opacity, 1));
+}
+
 .focus\:border-deepMagenta:focus {
   --tw-border-opacity: 1;
   border-color: rgb(180 0 200 / var(--tw-border-opacity, 1));
+}
+
+.focus\:border-brightMagenta:focus {
+  --tw-border-opacity: 1;
+  border-color: rgb(223 0 255 / var(--tw-border-opacity, 1));
 }
 
 @media (min-width: 640px) {
