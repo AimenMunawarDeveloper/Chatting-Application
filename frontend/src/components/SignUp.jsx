@@ -4,10 +4,11 @@ const SignUp = ({ handleSignUpOrLoginChange }) => {
   const [passwordVisibility, setPasswordVisibility] = useState("password");
   const [passwordVisibilityButtonText, setPasswordVisibilityButtonText] =
     useState("Show");
-  const [name, setName] = useState();
-  const [email, setEmail] = useState();
-  const [password, setPassword] = useState();
-  const [pic, setPic] = useState();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [pic, setPic] = useState("");
+
   const handlePasswordVisibilityChange = (e) => {
     e.preventDefault();
     if (passwordVisibility === "password") {
@@ -18,17 +19,22 @@ const SignUp = ({ handleSignUpOrLoginChange }) => {
       setPasswordVisibilityButtonText("Show");
     }
   };
+
   const postDetails = (pics) => {
     console.log(pics);
   };
-  const handleFormSubmision = () => {};
+
+  const handleFormSubmission = (e) => {
+    e.preventDefault();
+  };
+
   return (
     <form
-      className="bg-white w-80 sm:w-96 flex flex-col justify-center items-center rounded-lg p-6 sm:p-10"
-      onSubmit={handleFormSubmision}
+      className="bg-darkPurple w-80 sm:w-96 flex flex-col justify-center items-center rounded-lg p-6 sm:p-10 shadow-lg shadow-neonPink"
+      onSubmit={handleFormSubmission}
     >
-      <h1 className="text-black text-xl font-semibold">SignUp</h1>
-      <label htmlFor="name" className="w-full mb-5">
+      <h1 className="text-neonPink text-xl font-semibold">Sign Up</h1>
+      <label htmlFor="name" className="w-full mb-3 text-magenta">
         Name
       </label>
       <input
@@ -37,9 +43,9 @@ const SignUp = ({ handleSignUpOrLoginChange }) => {
         id="name"
         onChange={(e) => setName(e.target.value)}
         placeholder="Enter Your Name"
-        className="w-full border-2 mb-5 border-violet-400 focus:border-violet-500 p-2 rounded-lg"
+        className="w-full border-2 border-violetBlue focus:border-neonPink bg-transparent text-white p-2 rounded-lg outline-none mb-5"
       />
-      <label htmlFor="email" className="w-full mb-5">
+      <label htmlFor="email" className="w-full mb-3 text-magenta">
         Email Address
       </label>
       <input
@@ -48,49 +54,49 @@ const SignUp = ({ handleSignUpOrLoginChange }) => {
         id="email"
         placeholder="Email"
         onChange={(e) => setEmail(e.target.value)}
-        className="w-full border-2 mb-5 border-violet-400 focus:border-violet-500 p-2 rounded-lg"
+        className="w-full border-2 border-violetBlue focus:border-neonPink bg-transparent text-white p-2 rounded-lg outline-none mb-5"
       />
-      <label htmlFor="password" className="w-full mb-5">
+      <label htmlFor="password" className="w-full mb-3 text-magenta">
         Password
       </label>
-      <div className="w-full flex items-baseline gap-1">
+      <div className="w-full flex items-center gap-1">
         <input
           type={passwordVisibility}
           name="password"
           id="password"
+          onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
-          className="border-2 border-violet-400 mb-5 p-2 rounded-lg focus:border-violet-500 flex-grow"
+          className="border-2 border-violetBlue p-2 rounded-lg bg-transparent text-white focus:border-neonPink flex-grow outline-none"
         />
         <button
           type="button"
-          className="bg-violet-600 text-white p-2 rounded-md"
+          className="bg-neonPink text-white p-2 rounded-md"
           onClick={handlePasswordVisibilityChange}
         >
           {passwordVisibilityButtonText}
         </button>
       </div>
-
-      <label htmlFor="picture" className="w-full mb-5">
+      <label htmlFor="picture" className="w-full mb-3 text-magenta">
         Upload Your Picture
       </label>
       <input
         type="file"
         name="picture"
         id="picture"
-        accept="image/"
+        accept="image/*"
         onChange={(e) => postDetails(e.target.files[0])}
-        className="w-full border-2 mb-5 border-violet-400 focus:border-violet-500 p-2 rounded-lg"
+        className="w-full border-2 border-violetBlue focus:border-neonPink bg-transparent text-white p-2 rounded-lg outline-none mb-5"
       />
       <button
         type="submit"
-        className="text-white p-2 rounded-lg mt-4 bg-violet-600 w-full"
+        className="text-white p-2 rounded-lg mt-4 bg-neonPink w-full hover:bg-magenta transition duration-300"
       >
-        SignUp
+        Sign Up
       </button>
       <button
         type="button"
         onClick={handleSignUpOrLoginChange}
-        className="text-violet-600 mt-4 w-full text-center"
+        className="text-neonPink mt-4 w-full text-center hover:text-magenta transition duration-300"
       >
         Already have an account? Login
       </button>
