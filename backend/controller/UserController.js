@@ -1,7 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const User = require("../models/UserModel");
 const generateToken = require("../config/generateToken");
-
+const { protect } = require("../middleware/authMiddleware.js");
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, pic } = req.body;
   if (!name || !email || !password) {
@@ -50,5 +50,20 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new Error("Invalid email or password");
   }
 });
+// /api/user?search=aimen
+const allUsers = asyncHandler(async (req, res) => {
+  const keyword = req.query.search
+    ? {
+        $or: [
+          { name: { $regex: req.query.search, $options: "i" } },
+          { email: { $regex: req.query.search, $options: "i" } },
+        ], // i for case insensitivity
+      }
+    : {};
 
-module.exports = { registerUser, loginUser };
+  const users = await User.find(keyword).find({ _id: { $ne: req.user._id } });
+  res.send(users);
+
+  // console.log(keyword);
+});
+module.exports = { registerUser, loginUser, allUsers };

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import on from "../assets/on.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -8,17 +8,64 @@ import {
   faCheckDouble,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
+import Particles from "react-tsparticles";
+import { loadSlim } from "tsparticles-slim";
 const Chats = () => {
   const [chats, setChats] = useState([]);
-  const fetchChats = async () => {
-    const response = await axios.get("http://localhost:5000/api/chat");
-    setChats(response.data);
-  };
-  useEffect(() => {
-    fetchChats();
+  // const fetchChats = async () => {
+  //   const response = await axios.get(
+  //     `${import.meta.env.VITE_BACKEND_URL}/api/chat`
+  //   );
+  //   setChats(response.data);
+  // };
+  // useEffect(() => {
+  //   fetchChats();
+  // }, []);
+  const particlesInit = useCallback(async (engine) => {
+    await loadSlim(engine);
   }, []);
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-r from-brightMagenta via-deepMagenta via-richPurple via-darkViolet to-nearBlack bg-[length:200%_200%] animate-gradientMove p-2">
+      <Particles
+        id="tsparticles"
+        init={particlesInit}
+        options={{
+          background: {
+            color: "transparent",
+          },
+          particles: {
+            number: {
+              value: 100,
+              density: {
+                enable: true,
+                value_area: 800,
+              },
+            },
+            move: {
+              enable: true,
+              speed: 2,
+            },
+            size: {
+              value: 2,
+            },
+            color: {
+              value: "#ffffff",
+            },
+            shape: {
+              type: "line",
+            },
+            links: {
+              enable: true,
+              color: "#ffffff",
+              distance: 150,
+              opacity: 0.5,
+              width: 1,
+            },
+          },
+        }}
+      />
+
       <div className="h-full lg:flex gap-6 flex-grow">
         <div className="flex lg:flex-col lg:w-16 sm:w-full sm:flex sm:flex-row justify-center gap-10 p-2 bg-nearBlack shadow-2xl rounded-lg lg:h-full overflow-auto">
           <FontAwesomeIcon icon={faUser} className="text-3xl text-white" />

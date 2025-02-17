@@ -5,6 +5,8 @@ const { chats } = require("./dummy data/data");
 const connectDB = require("./config/db");
 const colors = require("colors");
 const userRoutes = require("./routes/UserRoutes");
+const chatRoutes = require("./routes/ChatRoutes");
+
 const app = express();
 dotenv.config();
 connectDB();
@@ -13,7 +15,7 @@ app.use(express.json());
 app.use(cors());
 
 app.use("/api/user", userRoutes);
-
+app.use("/api/chat", chatRoutes);
 // app.get("/", (req, res) => {
 //   res.send("get api running");
 // });
