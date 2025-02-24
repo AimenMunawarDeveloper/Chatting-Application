@@ -1,20 +1,31 @@
 import axios from "axios";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useContext } from "react";
 import on from "../assets/on.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHouse,
   faComment,
   faCheckDouble,
+  faSearch,
   faUser,
+  faBell,
 } from "@fortawesome/free-solid-svg-icons";
 import Particles from "react-tsparticles";
 import { loadSlim } from "tsparticles-slim";
+import { Tooltip } from "react-tooltip";
+import { ChatContext } from "../Context/ChatProvider";
 const Chats = () => {
-  const [chats, setChats] = useState([]);
+  const { user } = useContext(ChatContext) || {};
+  const [showMenu, setShowMenu] = useState(false);
+  // console.log(user.name);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [searchResult, setSearchResult] = useState([]);
+  const [loadingChat, setLoadingChat] = useState();
+  // console.log(user);
   // const fetchChats = async () => {
   //   const response = await axios.get(
-  //     `${import.meta.env.VITE_BACKEND_URL}/api/chat`
+  //     ${import.meta.env.VITE_BACKEND_URL}/api/chat
   //   );
   //   setChats(response.data);
   // };
@@ -23,6 +34,9 @@ const Chats = () => {
   // }, []);
   const particlesInit = useCallback(async (engine) => {
     await loadSlim(engine);
+  }, []);
+  useEffect(() => {
+    console.log("Updated User:", user);
   }, []);
 
   return (
@@ -65,22 +79,64 @@ const Chats = () => {
           },
         }}
       />
-
       <div className="h-full lg:flex gap-6 flex-grow">
-        <div className="flex lg:flex-col lg:w-16 sm:w-full sm:flex sm:flex-row justify-center gap-10 p-2 bg-nearBlack shadow-2xl rounded-lg lg:h-full overflow-auto">
-          <FontAwesomeIcon icon={faUser} className="text-3xl text-white" />
+        <div className="flex lg:flex-col lg:w-16 sm:w-full sm:flex sm:flex-row justify-center gap-10 p-2 bg-nearBlack shadow-2xl rounded-lg lg:h-full overflow-auto  items-center">
+          <div className="relative" data-tooltip-id="user-tooltip">
+            <div
+              onClick={() => setShowMenu(!showMenu)}
+              className="relative w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden"
+              data-tooltip-id="user-tooltip"
+            >
+              {user?.pic ? (
+                <img
+                  src={user.pic}
+                  alt="User Avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-lg font-bold text-deepMagenta">
+                  {user?.name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()}
+                </span>
+              )}
+            </div>
+            {showMenu && (
+              <div className="fixed left-10 top-14 w-40 bg-white rounded-lg shadow-lg p-2 z-50">
+                <button className="w-full text-left px-4 py-2 text-darkViolet hover:bg-gray-200">
+                  My Profile
+                </button>
+                <button className="w-full text-left px-4 py-2 text-red-500 hover:bg-gray-200">
+                  Log Out
+                </button>
+              </div>
+            )}
+          </div>
+          <Tooltip id="user-tooltip" place="top" effect="solid" offset={1}>
+            {user?.name || "Guest"}
+          </Tooltip>
           <FontAwesomeIcon icon={faHouse} className="text-3xl text-white" />
           <FontAwesomeIcon icon={faComment} className="text-3xl text-white" />
+          <FontAwesomeIcon icon={faBell} className="text-3xl text-white" />
         </div>
         <div className="lg:w-1/2 sm:w-full flex flex-col gap-4 p-0 mt-5">
-          <form className="w-full p-0">
-            <input
-              type="text"
-              name="search"
-              id="search"
-              placeholder="Search"
-              className="w-full border-2 border-brightMagenta focus:border-deepMagenta p-2 rounded-lg"
-            />
+          <form className="w-full p-0 relative">
+            <div className="flex items-center bg-white rounded-lg border-2 border-brightMagenta focus-within:border-deepMagenta p-2">
+              <FontAwesomeIcon icon={faSearch} className="text-black ml-2" />
+              <input
+                type="text"
+                name="search"
+                id="search"
+                placeholder="Search"
+                className="w-full bg-transparent outline-none p-2 pl-3"
+                data-tooltip-id="search-tooltip"
+              />
+            </div>
+            <Tooltip id="search-tooltip" place="bottom" effect="solid">
+              Search users to chat
+            </Tooltip>
           </form>
           <div className="rounded-lg bg-white p-3 shadow-lg">
             <h2 className="font-semibold text-lg text-richPurple">Groups</h2>

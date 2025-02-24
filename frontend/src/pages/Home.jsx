@@ -1,12 +1,19 @@
-// HomePage.js
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Login from "../components/Login";
 import SignUp from "../components/SignUp";
 import background from "../assets/background.jpg";
+import { useNavigate } from "react-router-dom";
 
 const HomePage = () => {
-  const [signupOrLogin, setSignupOrLogin] = useState("Login");
+  const navigate = useNavigate();
+  useEffect(() => {
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    if (userInfo) {
+      navigate("/chats");
+    }
+  }, [navigate]);
 
+  const [signupOrLogin, setSignupOrLogin] = useState("Login");
   const handleSignUpOrLoginChange = () => {
     setSignupOrLogin((prev) => (prev === "Login" ? "SignUp" : "Login"));
   };
