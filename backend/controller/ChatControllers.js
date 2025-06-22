@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const Chat = require("../models/ChatModel");
+const Message = require("../models/MessageModel");
 const User = require("../models/UserModel");
 // create or fetch one to one chat
 const accessChat = asyncHandler(async (req, res) => {
@@ -47,26 +48,26 @@ const accessChat = asyncHandler(async (req, res) => {
 const fetchChats = asyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;
-    const chats = await Chat.find({
+    let chats = await Chat.find({
       users: { $in: [userId] },
     })
       .populate("users", "-password")
       .populate("groupAdmin", "-password")
       .populate("latestMessage")
-      .sort({ updatedAt: -1 })
-      .then(async (results) => {
-        results = await User.populate(results, {
-          path: "latestMessage.sender",
-          select: "name pic email",
-        });
-        res.status(200).send(results);
-      });
+      .sort({ updatedAt: -1 });
+    chats = await User.populate(chats, {
+      path: "latestMessage.sender",
+      select: "name pic email",
+    });
+    res.status(200).send(chats);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching chats", error: error.message });
+    res.status(500).json({
+      message: "Error fetching chats",
+      error: error.message,
+    });
   }
 });
+
 const createGroupChat = asyncHandler(async (req, res) => {
   if (!req.body.users || !req.body.name) {
     return res.status(400).send({ message: "fill all the fields" });

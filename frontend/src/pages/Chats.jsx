@@ -22,6 +22,8 @@ const Chats = () => {
   const [loading, setLoading] = useState(false);
   const [searchResult, setSearchResult] = useState([]);
   const [loadingChat, setLoadingChat] = useState();
+  const [chats, setChats] = useState([]);
+  const [groupChats, setGroupChats] = useState([]);
   // console.log(user);
   // const fetchChats = async () => {
   //   const response = await axios.get(
@@ -35,10 +37,38 @@ const Chats = () => {
   const particlesInit = useCallback(async (engine) => {
     await loadSlim(engine);
   }, []);
+  const getHeader = () => {
+    const { email, name, pic, token, _id } = JSON.parse(
+      localStorage.getItem("userInfo")
+    );
+    console.log(email, name, pic, token, _id);
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    };
+  };
   useEffect(() => {
     console.log("Updated User:", user);
+    fetchChats();
   }, []);
 
+  const fetchChats = async () => {
+    try {
+      const { data } = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/chat/fetch`,
+        getHeader()
+      );
+      setChats(data);
+      setGroupChats(data.filter((chat) => chat.groupChat));
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  useEffect(() => {
+    console.log(chats);
+  }, [chats]);
   return (
     <div className="h-screen flex flex-col bg-gradient-to-r from-brightMagenta via-deepMagenta via-richPurple via-darkViolet to-nearBlack bg-[length:200%_200%] animate-gradientMove p-2">
       <Particles
@@ -140,23 +170,32 @@ const Chats = () => {
           </form>
           <div className="rounded-lg bg-white p-3 shadow-lg">
             <h2 className="font-semibold text-lg text-richPurple">Groups</h2>
-            <div className="mt-3 flex justify-between w-full gap-3">
-              <div className="flex gap-5">
-                <img src={on} className="w-10" />
-                <div className="flex flex-col">
-                  <p className="font-semibold text-deepMagenta">
-                    Aimen Munawar
-                  </p>
-                  <p className="text-darkViolet">Haha how are you</p>
-                </div>
-              </div>
-              <div className="flex flex-col items-end">
-                <p className="text-gray-600">Today, 9:52pm</p>
-                <div className="w-5 h-5 rounded-full flex justify-center items-center bg-darkViolet text-white">
-                  <p className="text-xs">4</p>
-                </div>
-              </div>
-            </div>
+            {groupChats.length > 0
+              ? groupChats.map((chat) => {
+                  return (
+                    <div
+                      key={chat._id}
+                      className="mt-3 flex justify-between w-full gap-3"
+                    >
+                      <div className="flex gap-5">
+                        <img src={on} className="w-10" />
+                        <div className="flex flex-col">
+                          <p className="font-semibold text-deepMagenta">
+                            {chat.name}
+                          </p>
+                          <p className="text-darkViolet">Last message here</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <p className="text-gray-600">Today, 9:52pm</p>
+                        <div className="w-5 h-5 rounded-full flex justify-center items-center bg-darkViolet text-white">
+                          <p className="text-xs">4</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              : "No Group chats"}
           </div>
           <div className="rounded-lg bg-white p-3 shadow-lg">
             <h2 className="font-semibold text-lg text-richPurple">People</h2>
