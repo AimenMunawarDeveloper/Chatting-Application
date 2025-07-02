@@ -46,8 +46,7 @@ const loginUser = asyncHandler(async (req, res) => {
       token: generateToken(user._id),
     });
   } else {
-    res.status(401);
-    throw new Error("Invalid email or password");
+    return res.status(401).json({ message: "Invalid email or password" });
   }
 });
 // /api/user?search=aimen

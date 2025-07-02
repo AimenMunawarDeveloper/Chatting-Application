@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import PropTypes from "prop-types";
 
 const Login = ({ handleSignUpOrLoginChange }) => {
   const [passwordVisibility, setPasswordVisibility] = useState("password");
@@ -50,9 +51,13 @@ const Login = ({ handleSignUpOrLoginChange }) => {
           navigate("/chats");
         }, 2000);
       } else {
-        toast.error(data.message || "Login failed. Please try again!", {
-          theme: "dark",
-        });
+        if (response.status === 401) {
+          toast.error("Invalid email or password", { theme: "dark" });
+        } else {
+          toast.error(data.message || "Login failed. Please try again!", {
+            theme: "dark",
+          });
+        }
       }
     } catch (error) {
       console.error("Login Error:", error);
@@ -116,6 +121,10 @@ const Login = ({ handleSignUpOrLoginChange }) => {
       <ToastContainer position="top-right" autoClose={3000} theme="dark" />
     </form>
   );
+};
+
+Login.propTypes = {
+  handleSignUpOrLoginChange: PropTypes.func.isRequired,
 };
 
 export default Login;
