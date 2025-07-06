@@ -8,8 +8,10 @@ const userRoutes = require("./routes/UserRoutes");
 const chatRoutes = require("./routes/ChatRoutes");
 const messageRoutes = require("./routes/MessageRoutes");
 const notificationRoutes = require("./routes/NotificationRoutes");
+const fileRoutes = require("./routes/FileRoutes");
 const http = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 dotenv.config();
@@ -18,10 +20,14 @@ connectDB();
 app.use(express.json());
 app.use(cors());
 
+// Serve static files from uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/message", messageRoutes);
 app.use("/api/notification", notificationRoutes);
+app.use("/api/file", fileRoutes);
 // app.get("/", (req, res) => {
 //   res.send("get api running");
 // });
@@ -45,29 +51,38 @@ const io = new Server(server, {
 app.set("io", io);
 
 io.on("connection", (socket) => {
+  console.log("New client connected:", socket.id);
+
   socket.on("setup", (userData) => {
     socket.join(userData._id); // Each user joins a room with their user ID
     socket.emit("connected");
+    console.log("User joined room:", userData._id);
   });
+
   // Join chat room
   socket.on("join chat", (chatId) => {
     socket.join(chatId);
+    console.log("User joined chat:", chatId);
   });
+
   // Listen for new messages and broadcast
   socket.on("new message", (message) => {
-    if (!message.chat || !message.chat._id) return;
-    io.to(message.chat._id).emit("message received", message);
-    // Emit notification to all users except sender
-    if (message.chat && message.chat.users) {
-      message.chat.users.forEach((user) => {
-        if (user._id !== message.sender._id) {
-          io.to(user._id).emit("notification", {
-            chatId: message.chat._id,
-            message,
-          });
-        }
-      });
+    console.log("New message received in socket:", message._id);
+    if (!message.chat || !message.chat._id) {
+      console.log("Invalid message format - missing chat or chat ID");
+      return;
     }
+
+    // Broadcast message to all users in the chat
+    console.log("Broadcasting message to chat room:", message.chat._id);
+    socket.to(message.chat._id).emit("message received", message);
+
+    // Note: Notifications are now handled in MessageController.js
+    // to ensure consistency and avoid duplicate emissions
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
   });
 });
 

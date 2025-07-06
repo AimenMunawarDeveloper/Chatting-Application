@@ -1,22 +1,31 @@
 import axios from "axios";
 import { useEffect, useState, useCallback, useContext, useRef } from "react";
-import on from "../assets/on.png";
+import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHouse,
-  faComment,
-  faCheckDouble,
   faSearch,
-  faBell,
+  faUserPlus,
+  faUsers,
+  faSmile,
+  faPaperclip,
+  faFile,
 } from "@fortawesome/free-solid-svg-icons";
 import Particles from "react-tsparticles";
 import { loadSlim } from "tsparticles-slim";
 import { Tooltip } from "react-tooltip";
 import { ChatContext } from "../Context/ChatProvider";
 import { io } from "socket.io-client";
+import SearchContacts from "../components/SearchContacts";
+import GroupManagement from "../components/GroupManagement";
+import NotificationBell from "../components/NotificationBell";
+import EmojiPicker from "../components/EmojiPicker";
+import FileUpload from "../components/FileUpload";
+import PropTypes from "prop-types";
 
 const Chats = () => {
-  const { user } = useContext(ChatContext) || {};
+  const { user, setUser } = useContext(ChatContext) || {};
+  const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
   const [loading, setLoading] = useState(false);
   const [chats, setChats] = useState([]);
@@ -29,9 +38,105 @@ const Chats = () => {
   const [socket, setSocket] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [search, setSearch] = useState("");
+  const [showSearchContacts, setShowSearchContacts] = useState(false);
+  const [showGroupManagement, setShowGroupManagement] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showFileUpload, setShowFileUpload] = useState(false);
   const particlesInit = useCallback(async (engine) => {
     await loadSlim(engine);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("userInfo");
+    setUser(null);
+    if (socket) {
+      socket.disconnect();
+    }
+    navigate("/");
+  };
+
+  const handleContactSelect = (chat) => {
+    setSelectedChat(chat);
+    fetchMessages(chat._id);
+    fetchChats(); // Refresh the chats list
+  };
+
+  const handleGroupCreated = (group) => {
+    setSelectedChat(group);
+    fetchMessages(group._id);
+    fetchChats(); // Refresh the chats list
+  };
+
+  const handleGroupUpdated = (group) => {
+    setSelectedChat(group);
+    fetchChats(); // Refresh the chats list
+  };
+
+  const handleClearNotification = (index) => {
+    setNotifications((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleNotificationClick = (notification) => {
+    // Find the chat from the notification
+    const chat = chats.find((c) => c._id === notification.chatId);
+    if (chat) {
+      setSelectedChat(chat);
+      fetchMessages(chat._id);
+    }
+    // Remove the notification
+    setNotifications((prev) =>
+      prev.filter((n) => n.message._id !== notification.message._id)
+    );
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    setNewMessage((prev) => prev + emoji);
+  };
+
+  // Helper function to get chat name and profile picture for non-group chats
+  const getChatInfo = (chat) => {
+    if (chat.groupChat) {
+      return {
+        name: chat.name,
+        pic: null, // Groups don't have profile pictures
+      };
+    } else {
+      // For one-to-one chats, find the other user
+      const otherUser = chat.users.find((u) => u._id !== user._id);
+      return {
+        name: otherUser ? otherUser.name : "Unknown User",
+        pic: otherUser ? otherUser.pic : null,
+      };
+    }
+  };
+
+  const handleFileUpload = async (fileInfo, messageType) => {
+    try {
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/message/`,
+        {
+          content: fileInfo.fileName,
+          chatId: selectedChat._id,
+          messageType: messageType,
+          attachment: fileInfo,
+        },
+        getHeader()
+      );
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === data._id)) return prev;
+        return [...prev, data];
+      });
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      if (socket) {
+        socket.emit("new message", data);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const getHeader = () => {
     const { email, name, pic, token, _id } = JSON.parse(
       localStorage.getItem("userInfo")
@@ -46,8 +151,10 @@ const Chats = () => {
   };
   useEffect(() => {
     console.log("Updated User:", user);
-    fetchChats();
-  }, []);
+    if (user) {
+      fetchChats();
+    }
+  }, [user]);
 
   const fetchChats = async () => {
     try {
@@ -107,11 +214,34 @@ const Chats = () => {
   };
 
   useEffect(() => {
-    const newSocket = io(import.meta.env.VITE_BACKEND_URL);
-    newSocket.on("connect", () => console.log("Socket connected!"));
-    setSocket(newSocket);
-    return () => newSocket.close();
-  }, []);
+    if (user) {
+      console.log("Setting up socket connection for user:", user._id);
+      const newSocket = io(import.meta.env.VITE_BACKEND_URL);
+
+      newSocket.on("connect", () => {
+        console.log("Socket connected with ID:", newSocket.id);
+        console.log("Emitting setup with user:", user);
+        newSocket.emit("setup", user);
+      });
+
+      newSocket.on("connected", () => {
+        console.log("Received connected confirmation from server");
+      });
+
+      newSocket.on("connect_error", (error) => {
+        console.error("Socket connection error:", error);
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        console.log("Cleaning up socket connection");
+        newSocket.close();
+      };
+    } else {
+      console.log("No user available for socket connection");
+    }
+  }, [user]);
 
   useEffect(() => {
     if (socket && selectedChat) {
@@ -135,21 +265,72 @@ const Chats = () => {
     };
   }, [socket, selectedChat]);
 
+  // Fetch notifications on login
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user) return;
+      try {
+        const { data } = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/notification`,
+          getHeader()
+        );
+        console.log("Fetched notifications:", data);
+        setNotifications(data);
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    };
+
+    fetchNotifications();
+  }, [user]);
+
   // Listen for notification events
   useEffect(() => {
-    if (!socket) return;
+    if (!socket) {
+      console.log("No socket connection for notifications");
+      return;
+    }
+
     const handleNotification = (data) => {
-      console.log("Received notification:", data);
-      setNotifications((prev) => {
-        if (prev.some((n) => n.message._id === data.message._id)) return prev;
-        return [...prev, data];
-      });
+      try {
+        console.log("Received notification data:", data);
+
+        if (!data || !data.message) {
+          console.error("Invalid notification format:", data);
+          return;
+        }
+
+        // Only add notification if not in the current chat
+        if (!selectedChat || selectedChat._id !== data.chatId) {
+          console.log("Adding new notification");
+          setNotifications((prev) => {
+            if (prev.some((n) => n._id === data._id)) {
+              console.log("Duplicate notification - skipping");
+              return prev;
+            }
+            // Play notification sound
+            new Audio("/notification.mp3").play().catch(console.error);
+            return [data, ...prev];
+          });
+        } else {
+          console.log(
+            "Skipping notification - user is in the chat:",
+            data.chatId
+          );
+        }
+      } catch (error) {
+        console.error("Error handling notification:", error);
+      }
     };
+
+    console.log("Setting up notification listener");
     socket.on("notification", handleNotification);
+
     return () => {
+      console.log("Cleaning up notification listener");
       socket.off("notification", handleNotification);
     };
-  }, [socket]);
+  }, [socket, selectedChat]);
 
   // Mark notifications as read when opening a chat
   useEffect(() => {
@@ -210,11 +391,37 @@ const Chats = () => {
 
   console.log("Notifications:", notifications);
 
+  // Socket setup is now handled in the socket creation useEffect
+
+  // Close menu when clicking outside
   useEffect(() => {
-    if (socket && user) {
-      socket.emit("setup", user);
-    }
-  }, [socket, user]);
+    const handleClickOutside = (event) => {
+      if (showMenu && !event.target.closest(".user-menu")) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showMenu]);
+
+  // Add DefaultAvatar component
+  const DefaultAvatar = ({ name, bgColor = "bg-brightMagenta" }) => (
+    <div
+      className={`w-10 h-10 rounded-full ${bgColor} flex items-center border-2 border-black justify-center text-black font-semibold`}
+    >
+      {name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase() || "?"}
+    </div>
+  );
+
+  DefaultAvatar.propTypes = {
+    name: PropTypes.string,
+    bgColor: PropTypes.string,
+  };
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-r from-brightMagenta via-deepMagenta via-richPurple via-darkViolet to-nearBlack bg-[length:200%_200%] animate-gradientMove p-2">
@@ -258,10 +465,10 @@ const Chats = () => {
       />
       <div className="h-full lg:flex gap-6 flex-grow">
         <div className="flex lg:flex-col lg:w-16 sm:w-full sm:flex sm:flex-row justify-center gap-10 p-2 bg-nearBlack shadow-2xl rounded-lg lg:h-full overflow-auto  items-center">
-          <div className="relative" data-tooltip-id="user-tooltip">
+          <div className="relative user-menu" data-tooltip-id="user-tooltip">
             <div
               onClick={() => setShowMenu(!showMenu)}
-              className="relative w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden"
+              className="relative w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden cursor-pointer"
               data-tooltip-id="user-tooltip"
             >
               {user?.pic ? (
@@ -271,21 +478,23 @@ const Chats = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-lg font-bold text-deepMagenta">
-                  {user?.name
-                    ?.split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()}
-                </span>
+                <div className="w-full h-full bg-brightMagenta flex items-center justify-center">
+                  <span className="text-lg font-bold text-white">
+                    {user?.name
+                      ?.split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()}
+                  </span>
+                </div>
               )}
             </div>
             {showMenu && (
               <div className="fixed left-10 top-14 w-40 bg-white rounded-lg shadow-lg p-2 z-50">
-                <button className="w-full text-left px-4 py-2 text-darkViolet hover:bg-gray-200">
-                  My Profile
-                </button>
-                <button className="w-full text-left px-4 py-2 text-red-500 hover:bg-gray-200">
+                <button
+                  className="w-full text-left px-4 py-2 text-red-500 hover:bg-gray-200"
+                  onClick={handleLogout}
+                >
                   Log Out
                 </button>
               </div>
@@ -294,9 +503,31 @@ const Chats = () => {
           <Tooltip id="user-tooltip" place="top" effect="solid" offset={1}>
             {user?.name || "Guest"}
           </Tooltip>
-          <FontAwesomeIcon icon={faHouse} className="text-3xl text-white" />
-          <FontAwesomeIcon icon={faComment} className="text-3xl text-white" />
-          <FontAwesomeIcon icon={faBell} className="text-3xl text-white" />
+          <FontAwesomeIcon
+            icon={faUserPlus}
+            className="text-3xl text-white cursor-pointer hover:text-brightMagenta transition-colors"
+            onClick={() => setShowSearchContacts(true)}
+            data-tooltip-id="add-contact-tooltip"
+          />
+          <Tooltip id="add-contact-tooltip" place="right" effect="solid">
+            Add Contact
+          </Tooltip>
+          <FontAwesomeIcon
+            icon={faUsers}
+            className="text-3xl text-white cursor-pointer hover:text-brightMagenta transition-colors"
+            onClick={() => setShowGroupManagement(true)}
+            data-tooltip-id="group-management-tooltip"
+          />
+          <Tooltip id="group-management-tooltip" place="right" effect="solid">
+            {selectedChat && selectedChat.groupChat
+              ? "Manage Group"
+              : "Create Group"}
+          </Tooltip>
+          <NotificationBell
+            notifications={notifications}
+            onClearNotification={handleClearNotification}
+            onNotificationClick={handleNotificationClick}
+          />
         </div>
         <div className="lg:w-1/2 sm:w-full flex flex-col gap-4 p-0 mt-5">
           <form
@@ -325,7 +556,7 @@ const Chats = () => {
             {filteredGroupChats.length > 0
               ? filteredGroupChats.map((chat) => {
                   const chatNotifications = notifications.filter(
-                    (n) => n.message.chat._id === chat._id
+                    (n) => n.message.chat._id === chat._id && !n.isRead
                   );
                   return (
                     <div
@@ -338,7 +569,10 @@ const Chats = () => {
                       onClick={() => handleChatSelect(chat)}
                     >
                       <div className="flex gap-5">
-                        <img src={on} className="w-10" />
+                        <DefaultAvatar
+                          name={chat.name}
+                          bgColor="bg-white text-black"
+                        />
                         <div className="flex flex-col">
                           <p className="font-semibold text-deepMagenta">
                             {chat.name}
@@ -356,17 +590,12 @@ const Chats = () => {
                             ? formatDate(chat.latestMessage.createdAt)
                             : ""}
                         </p>
-                        {chatNotifications.length > 0 ? (
+                        {chatNotifications.length > 0 && (
                           <div className="w-5 h-5 rounded-full flex justify-center items-center bg-darkViolet text-white">
                             <p className="text-xs">
                               {chatNotifications.length}
                             </p>
                           </div>
-                        ) : (
-                          <FontAwesomeIcon
-                            icon={faCheckDouble}
-                            className="text-brightMagenta"
-                          />
                         )}
                       </div>
                     </div>
@@ -378,8 +607,9 @@ const Chats = () => {
             <h2 className="font-semibold text-lg text-richPurple">People</h2>
             {filteredNonGroupChats.length > 0
               ? filteredNonGroupChats.map((chat) => {
+                  const chatInfo = getChatInfo(chat);
                   const chatNotifications = notifications.filter(
-                    (n) => n.message.chat._id === chat._id
+                    (n) => n.message.chat._id === chat._id && !n.isRead
                   );
                   return (
                     <div
@@ -392,10 +622,18 @@ const Chats = () => {
                       onClick={() => handleChatSelect(chat)}
                     >
                       <div className="flex gap-5">
-                        <img src={on} className="w-10" />
+                        {chatInfo.pic ? (
+                          <img
+                            src={chatInfo.pic}
+                            alt={chatInfo.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <DefaultAvatar name={chatInfo.name} />
+                        )}
                         <div className="flex flex-col">
                           <p className="font-semibold text-deepMagenta">
-                            {chat.name}
+                            {chatInfo.name}
                           </p>
                           <p className="text-darkViolet">
                             {chat.latestMessage
@@ -410,17 +648,12 @@ const Chats = () => {
                             ? formatDate(chat.latestMessage.createdAt)
                             : ""}
                         </p>
-                        {chatNotifications.length > 0 ? (
+                        {chatNotifications.length > 0 && (
                           <div className="w-5 h-5 rounded-full flex justify-center items-center bg-darkViolet text-white">
                             <p className="text-xs">
                               {chatNotifications.length}
                             </p>
                           </div>
-                        ) : (
-                          <FontAwesomeIcon
-                            icon={faCheckDouble}
-                            className="text-brightMagenta"
-                          />
                         )}
                       </div>
                     </div>
@@ -431,6 +664,48 @@ const Chats = () => {
         </div>
         <div className="lg:w-1/4 sm:w-full flex flex-col gap-4 p-0 lg:flex-grow mt-5">
           <div className="bg-white h-full mx-5 mb-5 rounded-lg flex flex-col flex-grow">
+            {/* WhatsApp-like header */}
+            {selectedChat && (
+              <div className="flex items-center p-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center space-x-3">
+                  {/* Profile picture */}
+                  {selectedChat.groupChat ? (
+                    <DefaultAvatar
+                      name={selectedChat.name}
+                      bgColor="bg-white text-black"
+                    />
+                  ) : (
+                    (() => {
+                      const chatInfo = getChatInfo(selectedChat);
+                      return chatInfo.pic ? (
+                        <img
+                          src={chatInfo.pic}
+                          alt={chatInfo.name}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-black"
+                        />
+                      ) : (
+                        <DefaultAvatar
+                          name={chatInfo.name}
+                          bgColor="bg-white text-black"
+                        />
+                      );
+                    })()
+                  )}
+                  <div>
+                    <h3 className="font-semibold text-gray-800">
+                      {selectedChat.groupChat
+                        ? selectedChat.name
+                        : getChatInfo(selectedChat).name}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {selectedChat.groupChat
+                        ? `${selectedChat.users.length} members`
+                        : "Online"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Message display area */}
             <div className="flex-1 overflow-auto p-4">
               {selectedChat ? (
@@ -457,7 +732,61 @@ const Chats = () => {
                         <div className="text-xs font-semibold mb-1">
                           {msg.sender.name}
                         </div>
-                        <div className="mb-1">{msg.content}</div>
+                        <div className="mb-1">
+                          {msg.messageType === "image" && msg.attachment ? (
+                            <div>
+                              <img
+                                src={`${import.meta.env.VITE_BACKEND_URL}${
+                                  msg.attachment.url
+                                }`}
+                                alt={msg.attachment.fileName}
+                                className="max-w-xs rounded-lg cursor-pointer"
+                                onClick={() =>
+                                  window.open(
+                                    `${import.meta.env.VITE_BACKEND_URL}${
+                                      msg.attachment.url
+                                    }`,
+                                    "_blank"
+                                  )
+                                }
+                              />
+                              <div className="text-xs text-gray-500 mt-1">
+                                {msg.attachment.fileName}
+                              </div>
+                            </div>
+                          ) : msg.messageType === "file" && msg.attachment ? (
+                            <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded-lg">
+                              <FontAwesomeIcon
+                                icon={faFile}
+                                className="text-brightMagenta"
+                              />
+                              <div className="flex-1">
+                                <div className="text-sm font-medium">
+                                  {msg.attachment.fileName}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {(
+                                    msg.attachment.fileSize /
+                                    1024 /
+                                    1024
+                                  ).toFixed(2)}{" "}
+                                  MB
+                                </div>
+                              </div>
+                              <a
+                                href={`${import.meta.env.VITE_BACKEND_URL}${
+                                  msg.attachment.url
+                                }`}
+                                download={msg.attachment.fileName}
+                                className="text-brightMagenta hover:text-deepMagenta text-sm"
+                              >
+                                Download
+                              </a>
+                            </div>
+                          ) : (
+                            msg.content
+                          )}
+                        </div>
                         <div className="text-[10px] text-right">
                           {formatDate(msg.createdAt)}
                         </div>
@@ -476,31 +805,72 @@ const Chats = () => {
             </div>
             {/* Message input */}
             {selectedChat && (
-              <form
-                onSubmit={sendMessage}
-                className="w-full border-t border-gray-300 flex items-center p-4 bg-white"
-                style={{ marginBottom: 0 }}
-              >
-                <input
-                  type="text"
-                  placeholder="Type Your Message"
-                  className="flex-grow h-12 px-4 rounded-md border border-brightMagenta focus:border-deepMagenta outline-none text-black mr-4"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  className="px-8 py-3 bg-brightMagenta text-white rounded-md hover:bg-deepMagenta transition text-base font-semibold"
-                  disabled={!newMessage.trim()}
-                  style={{ minWidth: "80px" }}
+              <div className="relative">
+                <form
+                  onSubmit={sendMessage}
+                  className="w-full border-t border-gray-300 flex items-center p-4 bg-white"
+                  style={{ marginBottom: 0 }}
                 >
-                  Send
-                </button>
-              </form>
+                  <div className="flex gap-3 mr-2" style={{ minWidth: "60px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowFileUpload(!showFileUpload)}
+                      className="text-brightMagenta hover:text-deepMagenta mr-4 text-xl"
+                    >
+                      <FontAwesomeIcon icon={faPaperclip} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="text-brightMagenta hover:text-deepMagenta ml-4 text-xl"
+                    >
+                      <FontAwesomeIcon icon={faSmile} />
+                    </button>
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="Type Your Message"
+                    className="flex-grow h-12 px-4 rounded-md border border-brightMagenta focus:border-deepMagenta outline-none text-black mr-4"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    className="px-8 py-3 bg-brightMagenta text-white rounded-md hover:bg-deepMagenta transition text-base font-semibold"
+                    disabled={!newMessage.trim()}
+                    style={{ minWidth: "80px" }}
+                  >
+                    Send
+                  </button>
+                </form>
+                <EmojiPicker
+                  isOpen={showEmojiPicker}
+                  onClose={() => setShowEmojiPicker(false)}
+                  onEmojiSelect={handleEmojiSelect}
+                />
+                <FileUpload
+                  isOpen={showFileUpload}
+                  onClose={() => setShowFileUpload(false)}
+                  onFileUpload={handleFileUpload}
+                />
+              </div>
             )}
           </div>
         </div>
       </div>
+      <SearchContacts
+        isOpen={showSearchContacts}
+        onClose={() => setShowSearchContacts(false)}
+        onContactSelect={handleContactSelect}
+      />
+      <GroupManagement
+        isOpen={showGroupManagement}
+        onClose={() => setShowGroupManagement(false)}
+        onGroupCreated={handleGroupCreated}
+        onGroupUpdated={handleGroupUpdated}
+        selectedChat={selectedChat}
+      />
     </div>
   );
 };

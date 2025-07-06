@@ -14,6 +14,17 @@ const messageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Chat",
     },
+    messageType: {
+      type: String,
+      enum: ["text", "image", "file", "emoji"],
+      default: "text",
+    },
+    attachment: {
+      url: String,
+      fileName: String,
+      fileType: String,
+      fileSize: Number,
+    },
   },
   {
     timestamps: true,
